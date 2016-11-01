@@ -1,0 +1,183 @@
+<html lang="en">
+
+<head>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<!-- Angular Material style sheet -->
+	<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+	<link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/angular_material/1.1.0/angular-material.min.css">
+	<style>
+		.header {
+			height: 60px;
+			background: #F0F0F0;
+			border: 1px solid #CCC;
+			width: 100%;
+			margin: 0px auto;
+		}
+	</style>
+</head>
+
+<body ng-app="app" ng-cloak ng-controller="HomeCtrl as vm">
+	<section class="header" >
+		<span style="position: relative;top: 15px;left: 10px">Youtube Compiler</span>
+	</section>
+	<section class="uploadForm" layout-margin>
+		<md-content layout-padding>
+			<form name="uploadForm">
+				<div layout="row">
+					<md-input-container flex="50">
+						<label>Title</label>
+						<input md-maxlength="100" required md-no-asterisk name="title" ng-model="vm.uploadFormData.title">
+						<div ng-messages="uploadForm.title.$error">
+							<div ng-message="required">This is required.</div>
+							<div ng-message="md-maxlength">The title must be less than 100 characters long.</div>
+						</div>
+					</md-input-container>
+					<md-chips flex="50" style="margin-top: 1px;" placeholder="Add tags" ng-model="vm.uploadFormData.tags" name="tag" md-removable="true"
+						md-max-chips="20">
+						<md-chip-template>
+							<strong>{{$chip}}</strong>
+						</md-chip-template>
+					</md-chips>
+				</div>
+				<div layout="row">
+
+				</div>
+				<md-input-container class="md-block">
+					<label>Description</label>
+					<textarea ng-model="vm.uploadFormData.description" md-maxlength="5000" rows="2" md-select-on-focus></textarea>
+				</md-input-container>
+				<md-chips style="margin-top: 1px;" placeholder="Add youtube video urls" ng-model="vm.uploadFormData.videos" name="videos"
+					md-removable="true" md-max-chips="20">
+					<md-chip-template>
+						<strong><a ng-href="{{$chip}}" target="_blank">{{vm.extractVideoId($chip)}}</a></strong>
+					</md-chip-template>
+				</md-chips>
+
+				<div>
+					<md-button ng-click="vm.submit(uploadForm)" ng-disabled="!uploadForm.$valid || vm.saveInProcess" class="md-raised md-primary" type="button" >Submit</md-button>
+				</div>
+			</form>
+		</md-content>
+		<!-- Angular Material requires Angular.js Libraries -->
+		<script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular.min.js"></script>
+		<script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-animate.min.js"></script>
+		<script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-aria.min.js"></script>
+		<script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-messages.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/angular-filter/0.5.11/angular-filter.min.js"></script>
+
+		<!-- Angular Material Library -->
+		<script src="http://ajax.googleapis.com/ajax/libs/angular_material/1.1.0/angular-material.min.js"></script>
+
+		<!-- Your application bootstrap  -->
+		<script type="text/javascript">    
+            function HomeCtrl(HomeService, $mdToast) {
+                var vm = this;
+				vm.extractVideoId = extractVideoId;
+				vm.videos = [];
+				vm.submit = submit;
+				vm.saveInProcess = false;
+				//HomeService.searchVideos().success(function(response) {
+				//	vm.videos = response;
+				//	console.log(vm.videos);
+				//});
+                vm.uploadFormData = {
+                    title:'',
+                    description:'',
+                    tags:[],
+                    videos:[]
+                };
+				function extractVideoId(url) {
+					var regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+					var match = url.match(regExp);
+					if (match && match[2].length == 11) {
+						return match[2];
+					}
+					return url;
+				}
+				function submit(form) {
+					if(vm.uploadFormData.videos.length === 0) {
+						return $mdToast.show(
+						$mdToast.simple()
+							.textContent('Please add atleast one youtube video url!')
+							.position('top right')
+							.hideDelay(3000)
+						);
+					}
+					vm.saveInProcess = true;
+					HomeService.uploadVidoeCompilation(vm.uploadFormData)
+					.success(function(response) {
+						vm.saveInProcess = false;
+						vm.uploadFormData = {
+							title:'',
+							description:'',
+							tags:[],
+							videos:[]
+						};
+						if(form) {
+							form.$setPristine();
+							form.$setUntouched();
+						}
+						return $mdToast.show(
+							$mdToast.simple()
+								.textContent('Added compilation successfully!')
+								.position('top right')
+								.hideDelay(3000)
+							);
+					})
+					.error(function(err) {
+						vm.saveInProcess = true;
+						return $mdToast.show(
+							$mdToast.simple()
+								.textContent('Compilation addition failed! ' + err)
+								.position('top right')
+								.hideDelay(3000)
+							);
+					});
+				}
+                
+            }
+            function HomeService($http) {
+                var service = {};
+                service.foo = foo;
+				service.searchVideos = searchVideos;
+				service.uploadVidoeCompilation = uploadVidoeCompilation;
+                function foo() {
+                    console.log('foo called');
+                }
+				function searchVideos() {
+					return $http({
+						url: 'http://localhost:5000/search?q=lol',
+						method: 'GET',
+						headers: {
+							'Content-Type': 'application/json'
+						}
+					});
+				}
+				function uploadVidoeCompilation(requestObj) {
+					return $http({
+						url: 'http://localhost:5000/videos',
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json'
+						},
+						data : requestObj
+					});
+				}
+                return service;
+            }
+        
+        angular.module('app', ['ngMaterial', 'ngMessages', 'ngAria', 'ngAnimate', 'angular.filter'])
+        .controller('HomeCtrl', HomeCtrl)
+        .factory('HomeService', HomeService)
+        .config(function($mdThemingProvider) {
+            $mdThemingProvider.theme('default')
+                .primaryPalette('amber')
+                .accentPalette('orange');
+        }).config(function($mdIconProvider) {
+  $mdIconProvider.fontSet('md', 'material-icons');
+});
+  </script>
+
+</body>
+
+</html>
