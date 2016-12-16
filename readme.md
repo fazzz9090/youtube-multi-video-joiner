@@ -1,4 +1,4 @@
-Youtube video joiner and uploader
+Youtube multi video joiner and uploader
 ====
 
 This application takes a list of youtube video urls as input, downloads them, joins them into a single video. 
